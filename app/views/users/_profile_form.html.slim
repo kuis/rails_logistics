@@ -1,0 +1,107 @@
+- is_corporate = @user.corporate_id? || current_user.corporate?
+#profile.tab-pane.active
+  .panel-body.pt0.pb0
+    .form-group.header.bgcolor-default
+      .col-md-12
+        span style="float:left" 
+          h4.semibold.text-muted.mt0.mb5= t('.profile')
+        span style="float:right"
+          - unless @user.corporate_id? && !current_user.corporate?
+            = f.submit class: "btn btn-success enabled-on-changes", disabled: true
+            '
+          - unless @user.new_record? || !policy(User).index?
+            - if @user.deleted?
+              = f.submit t('.activate'), class: "btn btn-success"
+            - else
+              = f.submit t('.inactivate'), class: "btn btn-danger"
+          '
+          = link_to 'Cancel', policy(User).index? ? users_path : maintenance_root_path, class: 'btn btn-default'
+    .form-group
+      label.col-sm-3.control-label= t('.photo')
+      = f.file_field :avatar, class: 'hidden', id: 'avatar-file-field'
+      = f.check_box :remove_avatar, class: 'hidden'
+      .col-sm-9
+        .btn-group.pr5
+          = image_tag @user.avatar.url(:thumb), class: 'img-circle img-bordered', width: "34px", id: 'avatar-img'
+        - unless is_corporate && !current_user.corporate?
+          .btn-group
+            - if @user.avatar?
+              button type="button" class="select-avatar btn btn-default"= t('.update')
+              button.btn.btn-default.dropdown-toggle data-toggle="dropdown" type="button" 
+                span.caret
+              ul.dropdown-menu role="menu"
+                li
+                  a href="#" class="select-avatar"= t('.update')
+                li
+                  a href="#" class="remove-avatar"= t('.remove_photo')
+            - else
+              button type="button" class="btn btn-default select-avatar"= t('.select_photo')
+    .form-group
+      label.col-sm-3.control-label
+        = t('.name')
+        span.text-danger *
+      .col-sm-6
+        .form-stack.has-icon.pull-left
+          = f.text_field :name, placeholder: t('.first_last_name'), class: 'form-control input-lg', disabled: @user.deleted?, require: true, data: { :'parsley-required' => ""}
+          i.ico-user2.form-control-icon
+    - if @user.all_properties.count > 1
+      = f.fields_for :settings do |sf|
+        .form-group
+          label.col-sm-3.control-label
+            = t('.primary_hotel')
+          .col-sm-6
+            .form-stack.has-icon.pull-left
+              = sf.select :primary_hotel, options_for_select(@user.all_properties.pluck(:name, :id), selected: @user.settings['primary_hotel']), {}, class: 'form-control'
+    - unless is_corporate
+      .form-group
+        label.col-sm-3.control-label
+          = t('.title')
+          span.text-danger *
+        .col-sm-6
+          = f.simple_fields_for :current_property_user_role do |ur|
+            .form-stack.has-icon.pull-left
+              = ur.text_field :title, placeholder: t('.users_title'), class: 'form-control input-lg', disabled: @user.deleted?, required: true, data: { :'parsley-required' => ""}
+              i.ico-vcard.form-control-icon
+    .form-group
+      label.col-sm-3.control-label
+        = t('.email')
+        span.text-danger *
+      .col-sm-6
+        .form-stack.has-icon.pull-left
+          = f.text_field :email, placeholder: t('.email'), class: 'form-control input-lg', required:true, data: { :'parsley-required' => ""}
+          i.ico-mail2.form-control-icon
+    .form-group
+      label.col-sm-3.control-label
+        = t('.phone')
+      .col-sm-6
+        .form-stack.has-icon.pull-left
+          = f.text_field :phone_number, placeholder: t('.phone'), class: 'form-control input-lg', data: { mask: '(999) 999-9999' }
+          i.ico-phone2.form-control-icon
+
+    - unless is_corporate
+      .form-group
+        label.col-sm-3.control-label
+          = t('.departments')
+          span.text-danger *
+        .col-sm-6
+          = f.association :departments, label: false, input_html: {class: 'form-control selectize'}, disabled: ( @user.deleted? || (cannot? :manage_restricted_attributes, User) )
+
+      .form-group
+        label.col-sm-3.control-label
+          = t('.order_approval_limit')
+          span.text-danger *
+        .col-sm-6
+          .input-group
+            span.input-group-addon $
+            = f.simple_fields_for :current_property_user_role do |role_f|
+              = role_f.input_field :order_approval_limit, as: :string, class: 'input-sm form-control currency-input', value: currency_format(@user.current_property_user_role.order_approval_limit), disabled: ( cannot? :manage_restricted_attributes, User )
+            span.input-group-btn
+              button.btn.btn-primary style="padding:5px" data-container="body" data-content="User will be able to approve orders with Cost <= this value" data-placement="right" data-toggle="popover" type="button" 
+                i.ico-question-sign
+      .form-group
+        label.col-sm-3.control-label
+          = t('.role')
+          span.text-danger *
+        .col-sm-6
+          = f.simple_fields_for :current_property_user_role do |ur|
+            = ur.association :role, label: false, required: true, input_html: {class: 'form-control'}, disabled: @user.deleted? || ( cannot? :manage_restricted_attributes, User )
